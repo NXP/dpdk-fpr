@@ -1,0 +1,16 @@
+#######################################################
+* Features to be supported:
+* VLAN
+* SNMP
+* tbl dumper
+* virtio
+* user given interface names
+* issue in eal argv cleanup
+* multiple queues and RSS
+* Support statistics for multiple ports, loop iterations (for kni)
+* Routes with the help of DHCP
+* default gateways lookup incase no gateway available
+* lpm_dump
+* performance
+* ZEBRA and BGP for dynamic and efficient routing.
+* build debian

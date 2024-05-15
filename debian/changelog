@@ -1,0 +1,221 @@
+pktj (0.1.34) unstable; urgency=medium
+
+  * Fix vPMDs with jumbo frame enabled
+
+ -- Fatih Acar <fatih@gandi.net>  Mon, 08 Oct 2018 15:19:17 +0200
+
+pktj (0.1.33) unstable; urgency=medium
+
+  * Support for DPDK 18.02
+  * Allow jumbo frames through KNI
+  * Fix naming issue of dump commands
+
+ -- Fatih Acar <fatih@gandi.net>  Thu, 14 Jun 2018 10:52:52 +0200
+
+pktj (0.1.32) unstable; urgency=medium
+
+  * main: fix endianness issue with ipv4 packets
+
+ -- Fatih Acar <fatih@gandi.net>  Wed, 20 Dec 2017 14:09:29 +0100
+
+pktj (0.1.31) unstable; urgency=medium
+
+  * control: handle default routes
+
+ -- Fatih Acar <fatih@gandi.net>  Wed, 20 Sep 2017 12:48:58 +0200
+
+pktj (0.1.30) unstable; urgency=medium
+
+  * Authorize NUD_STALE update for gratuitous arp.
+
+ -- Nikita Kozlov <nikita@gandi.net>  Tue, 29 Nov 2016 14:20:51 +0100
+
+pktj (0.1.29) unstable; urgency=medium
+
+  * Fix rte_lpm_delete speed.
+
+ -- Nikita Kozlov <nikita@gandi.net>  Sun, 30 Oct 2016 17:41:51 +0200
+
+pktj (0.1.28) unstable; urgency=medium
+
+  * Fix NUD status handling in neighbor4/neighbor6.
+
+ -- Nikita Kozlov <nikita@gandi.net>  Fri, 01 Jul 2016 16:26:51 +0200
+
+pktj (0.1.27) unstable; urgency=medium
+
+  * Improve netlink handling and lpm6 speed.
+
+ -- Nikita Kozlov <nikita@gandi.net>  Wed, 29 Jun 2016 11:21:51 +0200
+
+pktj (0.1.26) unstable; urgency=medium
+
+  * Use dpdk ubuntu dpdk 16.04 packages.
+
+ -- Nikita Kozlov <nikita@gandi.net>  Sun, 19 Jun 2016 17:46:51 +0200
+
+pktj (0.1.25) unstable; urgency=medium
+
+  * Rewrite control thread spawning logic.
+
+ -- Nikita Kozlov <nikita@gandi.net>  Wed, 03 Feb 2016 14:39:51 +0100
+
+pktj (0.1.24) unstable; urgency=low
+
+  * Modify the packaging for building with ubuntu dpdk packages.
+
+ -- Nikita Kozlov <nikita@gandi.net>  Wed, 06 Jan 2016 13:41:29 +0100
+
+pktj (0.1.23) unstable; urgency=low
+
+  * Set the correct prefix length for the local route.
+
+ -- Nikita Kozlov <nikita@gandi.net>  Fri, 27 Nov 2015 16:12:29 +0200
+
+pktj (0.1.22) unstable; urgency=low
+
+  * Fix packaging of new scripts.
+
+ -- Nikita Kozlov <nikita@gandi.net>  Fri, 27 Nov 2015 13:07:29 +0200
+
+pktj (0.1.21) unstable; urgency=low
+
+  * Add BLACKHOLE route type.
+  * Fix some coverity warning.
+  * Add an SNMP export script.
+
+ -- Nikita Kozlov <nikita@gandi.net>  Fri, 27 Nov 2015 11:28:29 +0200
+
+pktj (0.1.20) unstable; urgency=low
+
+  * Decrease usleep time in rdtsc thread.
+
+ -- Nikita Kozlov <nikita@gandi.net>  Wed, 28 Oct 2015 13:15:29 +0200
+
+pktj (0.1.19) unstable; urgency=low
+
+  * Increase max number of LPM entry.
+
+ -- Nikita Kozlov <nikita@gandi.net>  Fri, 23 Oct 2015 14:52:29 +0200
+
+pktj (0.1.18) unstable; urgency=low
+
+  * Fix ratel and kni_tx stats.
+  * Fix a potential sigpipe in cmdline.
+
+ -- Nikita Kozlov <nikita@gandi.net>  Tue, 20 Oct 2015 17:24:29 +0200
+
+pktj (0.1.17) unstable; urgency=low
+
+  * catch SIGTERM and SIGQUIT for terminating properly the processes.
+  * add local route for neighbor in the same network as ourselves.
+  * licensing.
+  * rename rdpdk to packet-journey.
+  * add a usleep of 1ms in kni_main_loop for not consuming all the core.
+  * fix acces to the kni from multiple threads.
+  * make acl switching threadsafe.
+  * documentations.
+
+ -- Nikita Kozlov <nikita@gandi.net>  Mon, 19 Oct 2015 16:34:29 +0200
+
+pktj (0.1.16) unstable; urgency=low
+
+  * Fix kni config from file.
+
+ -- Nikita Kozlov <nikita@gandi.net>  Tue, 29 Sep 2015 13:19:29 +0200
+
+pktj (0.1.15) unstable; urgency=low
+
+  * check NUD states in netlink callbacks and add an ipv6 multicast link-local route.
+
+ -- Nikita Kozlov <nikita@gandi.net>  Wed, 23 Sep 2015 11:33:29 +0200
+
+pktj (0.1.14) unstable; urgency=low
+
+  * fix ipv6 hop_limit bug and add rate-limiting to the kni.
+
+ -- Nikita Kozlov <nikita@gandi.net>  Tue, 22 Sep 2015 01:08:29 +0200
+
+pktj (0.1.13) unstable; urgency=low
+
+  * fix a bug is acl and ttl decrement.
+
+ -- Nikita Kozlov <nikita@gandi.net>  Mon, 14 Sep 2015 16:08:29 +0200
+
+pktj (0.1.12) unstable; urgency=low
+
+  * fix ipv6 local route bug.
+
+ -- Nikita Kozlov <nikita@gandi.net>  Wed, 09 Sep 2015 00:37:29 +0200
+
+pktj (0.1.11) unstable; urgency=low
+
+  * Use prctl for tracking childs + cmdline polling.
+
+ -- Nikita Kozlov <nikita@gandi.net>  Wed, 02 Sep 2015 17:40:29 +0200
+
+pktj (0.1.10) unstable; urgency=low
+
+  * fix bug in kni multithreading.
+
+ -- Nikita Kozlov <nikita@gandi.net>  Fri, 28 Aug 2015 14:27:29 +0200
+
+pktj (0.1.9) unstable; urgency=low
+
+  * fix jumbo params.
+
+ -- Nikita Kozlov <nikita@gandi.net>  Thu, 27 Aug 2015 04:11:29 +0200
+
+pktj (0.1.8) unstable; urgency=low
+
+  * Add missing libs in package.
+
+ -- Nikita Kozlov <nikita@gandi.net>  Wed, 26 Aug 2015 13:59:29 +0200
+
+pktj (0.1.7) unstable; urgency=low
+
+  * Dynamicly link against newest dpdk.
+
+ -- Nikita Kozlov <nikita@gandi.net>  Wed, 26 Aug 2015 12:59:29 +0200
+
+pktj (0.1.6) unstable; urgency=low
+
+  * Make it compatible with dpdk 2.1.0 .
+
+ -- Nikita Kozlov <nikita@gandi.net>  Wed, 26 Aug 2015 00:42:29 +0200
+
+pktj (0.1.5) unstable; urgency=low
+
+  * fix rename vEth to dpdk.
+
+ -- Nikita Kozlov <nikita@gandi.net>  Tue, 25 Aug 2015 02:23:29 +0200
+
+pktj (0.1.4) unstable; urgency=low
+
+  * rename vEth to dpdk.
+
+ -- Nikita Kozlov <nikita@gandi.net>  Thu, 20 Aug 2015 14:23:29 +0200
+
+pktj (0.1.3) unstable; urgency=low
+
+  * fix typo in rpath for sandybridge and ivybridge.
+
+ -- Nikita Kozlov <nikita@gandi.net>  Wed, 19 Aug 2015 23:37:29 +0200
+
+pktj (0.1.2) unstable; urgency=low
+
+  * add back vlan stripping on rx.
+
+ -- Nikita Kozlov <nikita@gandi.net>  Wed, 10 Aug 2015 03:03:29 +0200
+
+pktj (0.1.1) unstable; urgency=low
+
+  * add DEVICE_BOUND_OPT and DEVICE_UNBOUND_OPT in init script.
+
+ -- Nikita Kozlov <nikita@gandi.net>  Thu, 06 Aug 2015 15:39:29 +0200
+
+pktj (0.1.0) unstable; urgency=low
+
+  * Initial release.
+
+ -- Nikita Kozlov <nikita@gandi.net>  Fri, 31 Jul 2015 15:59:16 +0100

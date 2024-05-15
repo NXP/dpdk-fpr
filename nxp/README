@@ -1,0 +1,177 @@
+DPDK-FPR is a DPDK based Fast Path Routing application.
+DPDK-FPR is capable of:
+* Routing between DPDK interfaces using LPM
+* Support IPv4 and IPv6 traffic.
+* Learning Routes and Neighbours from the Linux kernel using Netlink,
+  with the kernel refreshing them automatically.
+* Forwarding non-IPv4 and non-IPv6 packets to kernel.
+* IP forwarding and Kernel traffic Rate limiting.
+* Support 5 tuples ACL based packets drop.
+* Core based statistics.
+* CLI, based on Unix socket.
+* Configurable through a config file.
+
+On running the dpdk-fpr application with an ethernet interface, an equivalent
+tap interface will also be created in kernel. This is required to send the
+traffic to kernel for the cases which are either not supported in DPDK or for
+the cases DPDK dependant on kernel like routing and neighbour table information.
+
+Name of tap interface is like "dtap*" and MAC address of dtap is matches with
+ethernet interface used by DPDK.
+
+DPDK FPR application will configure the dtap interface by the callback script
+given by the user.
+
+#####################################################
+COMPILATION:
+-----------
+
+* DPDK Compilation:
+  ~~~~~~~~~~~~~~~~
+1. Please refer DPDK nxp/README how to compile DPDK
+2. To install DPDK in a particular directory export below env. variable for compiling the DPDK
+	export DESTDIR=<path to install>
+3. Compile and install DPDK:
+	meson <params>
+	ninja -C <build> install
+
+* FPR compilation:
+  ~~~~~~~~~~~~~~~~
+  Follow the below steps:
+
+	export ARCH=aarch64
+	export PATH=$PATH:<toolchain path>
+	export CC=aarch64-linux-gnu-gcc  # update name as per the toolchain gcc binary name
+	export AR=aarch64-linux-gnu-ar
+	export PKG_CONFIG_LIBDIR=$PKG_CONFIG_LIBDIR:<DESTDIR>/usr/local/lib/pkgconfig/
+	Note: Need to modify libdpdk.pc file for correct installation path. Follow these steps to do so:
+		1. Edit the libdpdk.pc file at location: <DESTDIR>/usr/local/lib/pkgconfig/libdpdk.pc
+		2. update first line "prefix" path as:
+			prefix=<DESTDIR>/usr/local
+
+	make
+
+#####################################################
+STEPS TO RUN:
+------------
+
+1. Take following binaries/files to DuT:
+	- dpdk-fpr, fpr.conf, up, socat-2.0.0-0.b9.11.mga9.aarch64.rpm
+2. if "socat" application not already installed, then install it using below command:
+	- rpm -ivh --nodeps socat-2.0.0-0.b9.11.mga9.aarch64.rpm
+3. Prepare the DuT setup for DPDK application. Refer DPDK README for that.
+4. update fpr.conf and up files as per the use case.
+5. run dpdk-fpr application. example:
+	./dpdk-fpr --configfile ./fpr.conf
+6. open a new shell.
+7. connect to FPR using socat:
+	- socat - UNIX-CONNECT:/tmp/fpr.sock
+	- help
+8. Run traffic.
+
+
+#####################################################
+CLI commands help accessible via socat:
+--------------------------------------
+
+1. Show help:
+	- help
+2. Show neighbour table: (similar as ARP table in Linux kernel, only valid rules)
+	- neigh ipv4/ipv6
+3. To lookup a route entry in LPM table:
+	- lpm_lkp <IP>
+4. Show LPM stats: (Added/Deleted routes)
+	- lpm_stats ipv4/ipv6
+5. Show stats:
+	- stats      /* detailed cores stats */
+	- stats -j   /* detailed cores stats in JSON format*/
+	- stats -c <sec> /* display cores stats after every <sec> */
+6. Dump full neighbour table:
+	- dump_neigh ipv4 <filepath e.g. /home/root/temp.txt>
+	- cat /home/root/temp.txt
+7. Dump current log levels and log type IDs:
+	- dumploglevel  <filepath e.g. /home/root/level.txt>
+	- cat /home/root/level.txt
+8. Set global log level:
+	- loglevel <level>	/* value can be 0 to 8: 0 is no logs and 8 is debug level*/
+9. Enable/Disable logs types levels:
+	- logtype <type_id> <enable/disable>
+				/* type_id: use "dumploglevel" to see type id of a DPDK component.
+				 * 	    if type_id is 255 means, all log types.
+				 * enable/disable: 0 means log disable and 1 means log enable.
+				 *	           Level of enabled log will be global log level
+				 *		   which can be set by "loglevel".
+				 */
+10. IP rate limt:
+	- rlimit <IP> <PPS>	/* 0 PPS means rate limit is disabled. please note
+				 * FPR will limit the rate to approximate PPS value */
+11. IPv4 ACL rules add:
+	- acl_add ipv4/ipv6 <file_path>
+				/* Use this command to add IPv4/IPv6 ACL rules to drop packets.*/
+12. Show/clear port:
+	- show port info <portid> 	/* display port information */
+	- show port stats <portid> 	/* display port specific statistics */
+	- show port xstats <portid> 	/* display port specific extended statistics */
+
+	# Replace show with clear to clear statistics
+	Note: These features will be available only if underlying driver support these features.
+
+#####################################################
+Config file options:
+1. options defined under section [eal]:
+	- arg = <list of eal arguments>
+				/* please refer DPDK official eal document arguments.
+				 * example: = "arg = -l 0,1,2 --vdev net_tap0 --vdev net_tap1"
+				 * Pass the tap interfaces as vdev in eal argument list.
+				 * Number of vdev must be equal to actual number of ethernet devices.
+				 */
+
+2. options defined under section [fpr]:
+	- callback-setup = <script>
+				/* Give shell script path to config kernel interfaces.
+				 * Script can have commands for IP address, routes and ARPs
+				 */
+	- promiscuous = <0/1>
+				/* 1 to enable and 0 to disable promiscuous */
+	- kni_rate_limit = <PPS>
+				/* rate limit the packets in PPS sent to the kernel interface.
+				 * 0 means rate limit disabled.
+				 */
+	- unixsock = <PATH>
+				/* override cmdline unixsock path (default: "/tmp/fpr.sock) */
+	- rule_ipv4 = <file path>
+				/* File path for IPv4 ACL rules. only packet drop action is supported.
+				 * use "/dev/null" as value to not to configure any ACL rule.
+				 * Refer: https://doc.dpdk.org/dts/test_plans/l3fwdacl_test_plan.html
+				 */
+	- rule_ipv6 = <file path>
+				/* File path for IPv6 ACL rules. only packet drop action is supported.
+				 * use "/dev/null" as value to not to configure any ACL rule.
+				 * Refer: https://doc.dpdk.org/dts/test_plans/l3fwdacl_test_plan.html
+				 */
+	- max-pkt-len = <len>
+				/* Increase or decrease the maximum RX length.
+				 * max-pkt-len = MTU(Maximum Transmission Unit) + 14(src mac + dst mac) + 4(CRC)
+				 * MTU will also be driven from this value.
+				 */
+	- rate_limit = <file path>
+				/* define rate limite for various IP range. please note
+				 * FPR will limit the rate to approximate PPS value.*/
+	- aclneon = 1
+				/* To enable Neon algorithm for ACL */
+
+3. options defined under section [port <portid>]: <portid> is the id of port to be use.
+	- eal queues	= <queue id> <lcore id>
+				/*only single queue is supported so queue id must be 0*/
+	- kni		= <lcore id>
+				/* configuration of equivalent kernel interface. user will
+				 * have to create the interface via eal arguments.
+				 */
+
+
+Note: To comment a line in config file, put ";" before the line
+
+#######################################################
+LIMITATIONS:
+* Default gateway for routes is not supported.
+* No IPv6 extension headers are supported.

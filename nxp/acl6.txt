@@ -1,0 +1,2 @@
+#source addr/mask  destination addr/mask  source ports(range) dest ports(range) protocol/mask(range)
+@0:0:0:0:0:0:0:0/0 2001:0:0:0:0:0:0:4/128 0 : 65535 0 : 65535 0/0

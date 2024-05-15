@@ -1,0 +1,329 @@
+#!/bin/sh
+
+hostname ${uts}
+
+export TERM=screen
+export PATH=/usr/local/bin:/usr/bin:/bin:/sbin:/usr/local/sbin:/usr/sbin
+export HOME=/root
+
+mount -n -t proc proc /proc
+mount -n -t sysfs sys /sys
+
+mount -t tmpfs tmpfs /mnt
+mkdir /mnt/build /mnt/dpdkbuild
+
+mount -t 9p buildshare /mnt/build
+mount -t 9p dpdkbuildshare /mnt/dpdkbuild
+
+for fs in /run /var/run /var/tmp /var/log /tmp; do
+    mount -t tmpfs tmpfs $fs -o rw,nosuid,nodev
+done
+
+mount -t devtmpfs none /dev
+mkdir /dev/pts
+mount -t devpts none /dev/pts
+
+/etc/init.d/udev start
+(cd /dev; /sbin/MAKEDEV tty)
+(cd /dev; /sbin/MAKEDEV pty)
+
+for intf in /sys/class/net/*; do
+    intf=$(basename $intf)
+    ip a l dev $intf 2> /dev/null >/dev/null || continue
+    case $intf in
+        lo|eth*|dummy*)
+            ip link set up dev $intf
+            ;;
+    esac
+done
+
+rsyslogd
+
+sysctl -w net.ipv6.conf.all.forwarding=1
+sysctl -w net.ipv4.ip_forward=1
+
+mount -t tmpfs none /etc/bird
+
+mkdir /run/bird
+chown bird:bird /run/bird
+
+cat << EOF > /etc/bird/envvars
+BIRD_RUN_USER=bird
+BIRD_RUN_GROUP=bird
+EOF
+
+cat << EOF > /etc/bird/bird.conf
+log syslog all;
+
+protocol direct {
+  interface "-lo", "*";
+}
+
+protocol device {
+  scan time 10;
+}
+EOF
+
+
+cat << EOF > /etc/bird/bird6.conf
+log syslog all;
+
+protocol direct {
+  interface "-lo", "*";
+}
+
+protocol device {
+  scan time 10;
+}
+EOF
+
+case $uts in
+r1)
+  echo R1
+  ip link add link eth0 name eth0.2000 type vlan id 2000
+  ip a add 1.0.0.0/31 dev eth0.2000
+  ip a add 2001:1::0/127 dev eth0.2000
+  ip link set eth0.2000 up
+
+  ip a add 1.0.1.254/24 dev dummy0
+  ip a add 2001:2::1/48 dev dummy0
+  ip link set dummy0 up
+  ethtool -L eth0 combined 4
+
+cat << EOF >> /etc/bird/bird.conf
+protocol kernel {
+  export all;
+  export filter {
+    krt_prefsrc = 1.0.1.254;
+    accept;
+  };
+}
+
+router id 1.0.1.254;
+
+protocol bgp BGPLeft {
+  import all;
+  export all;
+
+  local as 1;
+  neighbor 1.0.0.1 as 2;
+  source address 1.0.0.0;
+}
+EOF
+
+cat << EOF >> /etc/bird/bird6.conf
+protocol kernel {
+  export all;
+  export filter {
+    krt_prefsrc = 2001:2::1;
+    accept;
+  };
+}
+
+router id 1.0.1.254;
+
+protocol bgp BGPLeft {
+  import all;
+  export all;
+
+  local as 1;
+  neighbor 2001:1::1 as 2;
+  source address 2001:1::;
+}
+EOF
+
+  /etc/init.d/bird start
+  /etc/init.d/bird6 start
+
+  ;;
+r2)
+  echo R2
+ip a
+ip link
+
+  echo 256 > /sys/kernel/mm/hugepages/hugepages-2048kB/nr_hugepages
+  mkdir /mnt/huge
+  mount -t hugetlbfs nodev /mnt/huge
+
+  insmod /mnt/dpdkbuild/build/kmod/igb_uio.ko
+  insmod /mnt/dpdkbuild/build/kmod/rte_kni.ko
+  ethtool -L eth0 combined 4
+  ethtool -L eth1 combined 4
+
+#make it more portable  
+  /mnt/dpdkbuild/tools/dpdk_nic_bind.py -b igb_uio 00:07.0
+  /mnt/dpdkbuild/tools/dpdk_nic_bind.py -b igb_uio 00:08.0
+
+#  ip a add 1.0.0.1/31 dev eth0
+#  ip a add 2001:1::1/127 dev eth0
+#  ip a add 1.0.0.3/31 dev eth1
+#  ip a add 2001:1::3/127 dev eth1
+
+cat << EOF >> /etc/bird/bird.conf
+protocol kernel {
+  export all;
+}
+
+router id 1.0.0.1;
+protocol bgp BGPLeft {
+  import all;
+  export all;
+
+  local as 2;
+  neighbor 1.0.0.0 as 1;
+  source address 1.0.0.1;
+}
+protocol bgp BGPRight {
+  import all;
+  export all;
+
+  local as 2;
+  neighbor 1.0.0.2 as 3;
+  source address 1.0.0.3;
+}
+EOF
+
+
+cat << EOF >> /etc/bird/bird6.conf
+protocol kernel {
+  export all;
+}
+
+router id 1.0.0.1;
+protocol bgp BGPLeft {
+  import all;
+  export all;
+
+  local as 2;
+  neighbor 2001:1::0 as 1;
+  source address 2001:1::1;
+}
+protocol bgp BGPRight {
+  import all;
+  export all;
+
+  local as 2;
+  neighbor 2001:1::2 as 3;
+  source address 2001:1::3;
+}
+EOF
+
+  /etc/init.d/bird start
+  /etc/init.d/bird6 start
+
+  ;;
+r3)
+  echo R3
+  ip link add link eth0 name eth0.2000 type vlan id 2000
+  ip a add 1.0.0.2/31 dev eth0.2000
+  ip a add 2001:1::2/127 dev eth0.2000
+  ip link set eth0.2000 up
+
+  ip a add 1.0.2.254/24 dev dummy0
+  ip a add 2001:3::1/48 dev dummy0
+  ip link set dummy0 up
+  ethtool -L eth0 combined 4
+
+cat << EOF >> /etc/bird/bird.conf
+protocol kernel {
+  export all;
+  export filter {
+    krt_prefsrc = 1.0.2.254;
+    accept;
+  };
+}
+
+router id 1.0.2.254;
+protocol bgp BGPRight {
+  import all;
+  export all;
+
+  local as 3;
+  neighbor 1.0.0.3 as 2;
+  source address 1.0.0.2;
+}
+EOF
+
+cat << EOF >> /etc/bird/bird6.conf
+protocol kernel {
+  export all;
+  export filter {
+    krt_prefsrc = 2001:3::1;
+    accept;
+  };
+}
+
+router id 1.0.2.254;
+protocol bgp BGPRight {
+  import all;
+  export all;
+
+  local as 3;
+  neighbor 2001:1::3 as 2;
+  source address 2001:1::2;
+}
+EOF
+
+  /etc/init.d/bird start
+  /etc/init.d/bird6 start
+
+  ;;
+esac
+
+mount -t tmpfs none /etc/ssh
+cat <<EOF > /etc/ssh/sshd_config
+Port 22
+Protocol 2
+HostKey /etc/ssh/ssh_host_rsa_key
+UsePrivilegeSeparation no
+KeyRegenerationInterval 3600
+ServerKeyBits 768
+SyslogFacility AUTH
+LogLevel INFO
+LoginGraceTime 120
+PermitRootLogin yes
+PermitUserEnvironment yes
+StrictModes yes
+RSAAuthentication yes
+PubkeyAuthentication yes
+IgnoreRhosts yes
+RhostsRSAAuthentication no
+HostbasedAuthentication no
+PermitEmptyPasswords no
+ChallengeResponseAuthentication no
+PrintMotd no
+PrintLastLog yes
+TCPKeepAlive yes
+AcceptEnv LANG LC_ADDRESS LC_COLLATE LC_CTYPE LC_IDENTIFICATION LC_MEASUREMENT LC_MESSAGES LC_MONETARY LC_NAME LC_NUMERIC LC_PAPER LC_TELEPHONE LC_TIME LC_ALL
+Subsystem sftp /usr/lib/openssh/sftp-server
+UsePAM yes
+EOF
+ssh-keygen -q -f /etc/ssh/ssh_host_rsa_key -b 768 -N ''
+
+ulimit -c unlimited
+sysctl -w kernel.core_pattern=/tmp/core
+/etc/init.d/ssh start
+
+mount -t tmpfs none /root
+chmod 700 /root
+mkdir /root/.ssh
+cp /media/integration.pub /root/.ssh/authorized_keys
+cp /media/gdbinit /root/.gdbinit
+
+cat <<EOF > /root/.ssh/environment
+DPDK_PATH=$1
+BUILD_PATH=$2
+EOF
+
+case $uts in
+r1|r3)
+  dhclient -v eth1
+
+  ;;
+r2)
+  dhclient -v eth2
+
+  ;;
+esac
+
+exec bash  -c " trap 'echo coucou signal' SIGHUP SIGINT SIGTERM; /sbin/getty -L ttyS1 -a root vt100"

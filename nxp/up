@@ -1,0 +1,33 @@
+#!/bin/sh
+
+# Stop the dynamic network services to config static ip
+systemctl stop avahi-daemon.socket
+systemctl stop avahi-daemon.service
+systemctl disable avahi-daemon.socket
+systemctl disable avahi-daemon.service
+
+systemctl stop connman.service
+systemctl disable connman.service
+
+link1=$1
+link2=$3
+mac1=$2
+mac2=$4
+
+ip link set $link1 down
+ip link set $link2 down
+
+ip link set $link1 address $mac1
+ip link set $link2 address $mac2
+
+ip addr add 1.1.1.1/24 dev $link1
+sleep 1
+ip addr add 2.2.2.2/24 dev $link2
+
+sleep 1
+ip addr add 2000::1/48 dev $link1
+sleep 1
+ip addr add 2001::1/48 dev $link2
+
+ip link set $link1 up
+ip link set $link2 up
