@@ -45,6 +45,7 @@ extern uint32_t t_nb_ports;
 extern uint32_t nb_ports;
 extern uint32_t enabled_kni_port_mask;
 extern int promiscuous_on;
+extern int multicast_on;
 extern uint32_t kni_rate_limit;
 extern const char* callback_setup;
 extern const char* unixsock_path;
@@ -129,6 +130,7 @@ extern uint32_t rlimit6_max[NB_SOCKETS][NEI_NUM_ENTRIES];
 #define CMD_LINE_OPT_RULE_IPV6 "rule_ipv6"
 #define CMD_LINE_OPT_ACLNEON "aclneon"
 #define CMD_LINE_OPT_PROMISC "promiscuous"
+#define CMD_LINE_OPT_MULTICAST "multicast"
 #define CMD_LINE_OPT_MAXPKT_LEN "max-pkt-len"
 #define CMD_LINE_OPT_PORTMASK "portmask"
 #define CMD_LINE_OPT_CONFIGFILE "configfile"

@@ -98,6 +98,7 @@ uint32_t t_nb_ports = 0;
 uint32_t nb_ports = 0;
 uint32_t enabled_kni_port_mask = 0;
 int promiscuous_on = 0; /**< Ports set in promiscuous mode off by default. */
+int multicast_on = 0; /**< Ports set in multicast mode off by default. */
 uint32_t kni_rate_limit = UINT32_MAX;
 const char* callback_setup = NULL;
 const char* unixsock_path = "/tmp/fpr.sock";
@@ -653,6 +654,15 @@ install_cfgfile(const char* file_name, char* prgname)
 		if (strtoul(entry, NULL, 0)) {
 			RTE_LOG(INFO, PKTJ1, "Promiscuous mode selected\n");
 			promiscuous_on = 1;
+		}
+	}
+	/*      optional    */
+	entry =
+	    rte_cfgfile_get_entry(file, FILE_MAIN_CONFIG, CMD_LINE_OPT_MULTICAST);
+	if (entry) {
+		if (strtoul(entry, NULL, 0)) {
+			RTE_LOG(INFO, PKTJ1, "Multicast mode selected\n");
+			multicast_on = 1;
 		}
 	}
 

@@ -1560,6 +1560,10 @@ main(int argc, char** argv)
 			rte_eth_promiscuous_enable(portid);
 			rte_eth_promiscuous_enable(kni_port_params_array[portid]->port_id);
 		}
+		if (multicast_on) {
+			rte_eth_allmulticast_enable(portid);
+			rte_eth_allmulticast_enable(kni_port_params_array[portid]->port_id);
+		}
 	}
 
 	check_all_ports_link_status((uint8_t)t_nb_ports, enabled_port_mask);

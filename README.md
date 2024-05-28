@@ -58,6 +58,7 @@ callback-setup  = /root/devel/router-dpdk/tests/integration/lab00/up.sh
 rule_ipv4       = /root/devel/router-dpdk/tests/integration/lab00/acl.txt
 rule_ipv6       = /root/devel/router-dpdk/tests/integration/lab00/acl6.txt
 promiscuous     = 1
+multicast     = 1
 kni_rate_limit  = 1000
 aclneon         = 1
 

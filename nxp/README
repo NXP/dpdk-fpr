@@ -133,6 +133,8 @@ Config file options:
 				 */
 	- promiscuous = <0/1>
 				/* 1 to enable and 0 to disable promiscuous */
+	- multicast = <0/1>
+				/* 1 to enable and 0 to disable multicast */
 	- kni_rate_limit = <PPS>
 				/* rate limit the packets in PPS sent to the kernel interface.
 				 * 0 means rate limit disabled.
