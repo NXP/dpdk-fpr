@@ -1,0 +1,37 @@
+The dpdk-fpr uses the Open Source BSD-3-Clause license for the core libraries and
+drivers.
+
+Including big blocks of License headers in all files blows up the
+source code with mostly redundant information.  An additional problem
+is that even the same licenses are referred to by a number of
+slightly varying text blocks (full, abbreviated, different
+indentation, line wrapping and/or white space, with obsolete address
+information, ...) which makes validation and automatic processing a nightmare.
+
+To make this easier, dpdk-fpr uses a single line reference to Unique License
+Identifiers in source files as defined by the Linux Foundation's SPDX project
+(https://spdx.org/).
+
+Adding license information in this fashion, rather than adding full license
+text, can be more efficient for developers; decreases errors; and improves
+automated detection of licenses. The current set of valid, predefined SPDX
+identifiers is set forth on the SPDX License List at https://spdx.org/licenses/.
+
+dpdk-fpr uses first line of the file to be SPDX tag. In case of *#!* scripts, SPDX
+tag can be placed in 2nd line of the file.
+
+For example, to label a file as subject to the BSD-3-Clause license,
+the following text would be used:
+
+SPDX-License-Identifier: BSD-3-Clause
+
+Any new file contributions in dpdk-fpr shall adhere to the above scheme.
+It is also being recommended to replace the existing license text in the code
+with SPDX-License-Identifiers.
+
+dpdk-fpr project supported licenses are:
+
+1. BSD 3-clause "New" or "Revised" License
+	SPDX-License-Identifier: BSD-3-Clause
+	URL: http://spdx.org/licenses/BSD-3-Clause#licenseText
+	License text: licenses/bsd-3-clause.txt
