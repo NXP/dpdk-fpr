@@ -16,11 +16,13 @@ CFLAGS += -I$(S)/../lib/libnetlink/
 
 DEPDIR-y += lib/libnetlink lib/libneighbour
 
-LDFLAGS += -lc -lpthread -ldl
-LDFLAGS += -L$(BASE_OUTPUT)/lib/libneighbour/ -L$(BASE_OUTPUT)/lib/libnetlink/ -lneighbour -lnetlink
+APP_LDFLAGS += -lc -lpthread -ldl
+APP_LDFLAGS += -L$(BASE_OUTPUT)/lib/libneighbour/ -L$(BASE_OUTPUT)/lib/libnetlink/ -lneighbour -lnetlink
 ifeq ($(BUILD_TARGET),qemu)
-	LDFLAGS += --wrap=virtio_recv_mergeable_pkts
+	APP_LDFLAGS += --wrap=virtio_recv_mergeable_pkts
 endif
+
+APP_LDFLAGS += $(EXTRA_LDFLAGS)
 
 # workaround for a gcc bug with noreturn attribute
 # http://gcc.gnu.org/bugzilla/show_bug.cgi?id=12603
@@ -36,7 +38,7 @@ OBJS := $(SRCS-y:.c=.o)
 
 all : $(APP)
 $(APP) : $(OBJS)
-	$(CC) $(EXTRA_CFLAGS) $(CFLAGS) -o $@ $(OBJS) $(LDFLAGS) $(EXTRA_LDFLAGS)
+	$(CC) $(EXTRA_CFLAGS) $(CFLAGS) -o $@ $(OBJS) $(APP_LDFLAGS)
 
 %.o : %.c
 	$(CC) $(EXTRA_CFLAGS) $(CFLAGS) -c $< -o $@
