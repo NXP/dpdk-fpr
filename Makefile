@@ -40,13 +40,24 @@ DIRS-y += lib
 DIRS-y += app
 DIRS-y += tests
 
+SUBDIRS := lib app tests
 DEPDIRS-tests = lib
 
 .PHONY: default
 default: all
 
 .PHONY: all
-all: $(DIRS-y)
+all:
+	@for dir in $(SUBDIRS); do \
+		$(MAKE) -C $$dir \
+                M=$(CURDIR)/$$dir/Makefile \
+                BASE_OUTPUT=$(BASE_OUTPUT) \
+                CUR_SUBDIR=$(CUR_SUBDIR)/$$dir \
+                S=$(CURDIR)/$$dir \
+                EXTRA_CFLAGS="$(EXTRA_CFLAGS)" \
+                EXTRA_LDFLAGS="$(LDFLAGS)" \
+                $(filter-out $(DIRS-y),$(MAKECMDGOALS)); \
+	done
 
 .PHONY: clean
 clean: $(DIRS-y)
