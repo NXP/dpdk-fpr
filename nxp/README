@@ -173,6 +173,10 @@ Config file options:
 
 Note: To comment a line in config file, put ";" before the line
 
+Note: scripts/pktj_snmp.py is dependent on SNMP-PassPersist
+	user can install SNMP-PassPersist using below command:
+	pip install snmp_passpersist
+
 #######################################################
 LIMITATIONS:
 * Default gateway for routes is not supported.

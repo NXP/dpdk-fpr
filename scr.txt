@@ -9,7 +9,6 @@ Package Category:            BSP
 Type of Content:             source
 Description and comments:    DPDK based Fast Path Routing
 Release Location:            https://github.com/nxp/dpdk-fpr
-Origin:                      DPDK - Intel Corporation (BSD-3-Clause) - https://github.com/DPDK/dpdk
+Origin:                      NXP (BSD-3-Clause)
+                             DPDK - Intel Corporation (BSD-3-Clause) - https://github.com/DPDK/dpdk
                              Packet Journey - Gandi S.A.S (BSD-2-Clause) - https://github.com/Gandi/packet-journey
-                             snmp_passpersist.py - Nicolas AGIUS (GPL-3.0) - Separate tool for SNMP
-                             NXP (BSD-3-Clause)
