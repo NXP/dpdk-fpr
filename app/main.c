@@ -1170,12 +1170,23 @@ init_port(uint8_t portid)
 	/* init port */
 	RTE_LOG(INFO, PKTJ1, "Initializing port %d ...\n", portid);
 
+	rte_eth_dev_info_get(portid, &dev_info);
 	nb_rx_queue = get_port_n_rx_queues(portid);
-#if PKTJ_MULTI_TX
-	nb_tx_queue = nb_rx_queue + 1;
-#else
-	nb_tx_queue = nb_rx_queue;
-#endif
+	if (nb_rx_queue > dev_info.max_rx_queues)
+		rte_exit(EXIT_FAILURE, "No enough queues %d, requested= %d\n",
+				dev_info.max_rx_queues, nb_rx_queue);
+
+	/* creating an additional TX queue for kni thread */
+	if (dev_info.max_tx_queues >= (nb_rx_queue + 1)) {
+		nb_tx_queue = nb_rx_queue + 1;
+		kni_port_params_array[portid]->eth_tx_q_id = nb_tx_queue - 1;
+		RTE_LOG(DEBUG, PKTJ1, "INFO: creating separate TX queue for KNI\n");
+	} else {
+		nb_tx_queue = nb_rx_queue;
+		kni_port_params_array[portid]->eth_tx_q_id = 0;
+		RTE_LOG(WARNING, PKTJ1, "WARNING: No separate TX queue for KNI thread\n");
+	}
+
 	RTE_LOG(INFO, PKTJ1, "Creating queues: nb_rxq=%d nb_txq=%u...\n",
 		nb_rx_queue, nb_tx_queue);
 
@@ -1192,19 +1203,20 @@ init_port(uint8_t portid)
 	rte_eth_macaddr_get(portid, &ports_eth_addr[portid]);
 	print_ethaddr(" Address:", &ports_eth_addr[portid]);
 
-	rte_eth_dev_info_get(portid, &dev_info);
 	txconf = &dev_info.default_txconf;
 
 	socketid = 0;
-#if PKTJ_MULTI_TX
-	ret = rte_eth_tx_queue_setup(portid, nb_tx_queue - 1, nb_txd, socketid,
-				     txconf);
-	if (ret < 0)
-		rte_exit(EXIT_FAILURE,
-			 "rte_eth_tx_queue_setup: err=%d, "
-			 "port=%u\n",
-			 ret, portid);
-#endif
+
+	/* Creating TX queue for KNI thread */
+	if (nb_tx_queue > nb_rx_queue) {
+		ret = rte_eth_tx_queue_setup(portid, kni_port_params_array[portid]->eth_tx_q_id,
+				nb_txd, socketid, txconf);
+		if (ret < 0)
+			rte_exit(EXIT_FAILURE,
+				 "rte_eth_tx_queue_setup for KNI: err=%d, "
+				 "port=%u\n",
+				 ret, portid);
+	}
 	nb_tx_queue = 0;
 	/* init one TX queue per couple (lcore,port) */
 	for (lcore_id = 0; lcore_id < RTE_MAX_LCORE; lcore_id++) {
@@ -1592,6 +1604,7 @@ main(int argc, char** argv)
 					lcore_id);
 				args[portid].lcore_id = lcore_id;
 				args[portid].portid = portid;
+				args[portid].eth_tx_q_id = kni_port_params_array[portid]->eth_tx_q_id;
 				printf("args.portid = %d\n", args[portid].portid);
 				pthread_create(&kni_tid, NULL,
 					       (void*)kni_main_loop,
