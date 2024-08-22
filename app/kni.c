@@ -188,7 +188,7 @@ kni_main_loop(void* arg)
                                          KNI_BURST);
 		stats[lcore_id].nb_kni_rx += nb_rx;
 		if (nb_rx) {
-			ret = rte_eth_tx_burst(port_id, 0, &pkts_burst[0], nb_rx);
+			ret = rte_eth_tx_burst(port_id, args->eth_tx_q_id, &pkts_burst[0], nb_rx);
                         if (ret != nb_rx) {
 				RTE_LOG(DEBUG, PKTJ1, "TX failed port = %d, pkts = %d\n", port_id, nb_rx - ret);
 				kni_burst_free_mbufs(&pkts_burst[ret], nb_rx - ret, lcore_id);
