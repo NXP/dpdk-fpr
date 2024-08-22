@@ -164,9 +164,9 @@ kni_main_loop(void* arg)
 	/* TODO:Support statistics for multiple ports, loop iterations */
 	stats[args->lcore_id].port_id = args->portid;
 	CPU_ZERO(&cpuset);
-        CPU_SET(lcore_id, &cpuset);
 	port_id = args->portid;
 	lcore_id = args->lcore_id; 
+	CPU_SET(lcore_id, &cpuset);
 
 	RTE_LOG(INFO, PKTJ1, "entering kni main loop portid %u\n", port_id);
         ret = pthread_setaffinity_np(
