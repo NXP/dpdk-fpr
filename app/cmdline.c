@@ -1217,6 +1217,7 @@ cmd_dump_lpm_parsed(void* parsed_result,
 		fwrite("1234567890", 1, 10, flpm);
 		fwrite(t->tbl8, sizeof(*t->tbl8), t->number_tbl8s, flpm);
 	}*/
+	fclose(flpm);
 }
 
 cmdline_parse_token_string_t cmd_dump_lpm_lpm =
@@ -1401,7 +1402,8 @@ create_unixsock(const char* path)
 	}
 
 	local.sun_family = AF_UNIX;
-	strncpy(local.sun_path, path, sizeof(local.sun_path));
+	strncpy(local.sun_path, path, sizeof(local.sun_path) - 1);
+	local.sun_path[sizeof(local.sun_path) - 1] = '\0';
 	unlink(local.sun_path);
 	len = strlen(local.sun_path) + sizeof(local.sun_family);
 
@@ -1468,6 +1470,11 @@ pktj_cmdline_init(const char* path, uint32_t socket_id)
 			RTE_LOG(WARNING, CMDLINE1, "symlink() failed %s\n",
 				strerror(errno));
 		}
+	}
+
+	if (socket_id >= NB_SOCKETS) {
+		RTE_LOG(ERR, CMDLINE1, "Invalid socket_id\n");
+		return -1;
 	}
 
 	cmdline_thread_unixsock[socket_id] = fd;

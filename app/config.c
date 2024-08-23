@@ -483,6 +483,7 @@ install_cfgfile(const char* file_name, char* prgname)
 		char *token;
 
 		strncpy(line, entries[k].value, MAX_EAL_LINE_SIZE - 1);
+		line[MAX_EAL_LINE_SIZE - 1] = '\0';
 		token = strtok(line, eal_delimiters);
 		while (token != NULL && eal_argc < MAX_EAL) {
 			eal_args[eal_argc] = strdup(token);
