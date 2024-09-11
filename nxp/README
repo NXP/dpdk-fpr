@@ -1,4 +1,4 @@
-DPDK-FPR is a DPDK based Fast Path Routing application.
+DPDK-FPR is a DPDK based Fast Path Routing application, supported on i.mx93 and i.mx95
 DPDK-FPR is capable of:
 * Routing between DPDK interfaces using LPM
 * Support IPv4 and IPv6 traffic.
@@ -55,11 +55,17 @@ COMPILATION:
 STEPS TO RUN:
 ------------
 
-1. Take following binaries/files to DuT:
+For i.MX93 Platform:
+    - Use fpr_imx93.conf file to run dpdk-fpr on this platform.
+    - ENET-FEC limitation: enable promiscuous to resolve arp of IPv6 traffic.
+
+Run dpdk-fpr on i.MX95 and i.MX93 boards:
+-----------------------------------------
+1. Take following binaries/files to DuT to same directory in rootfs:
 	- dpdk-fpr, fpr.conf, up, socat-2.0.0-0.b9.11.mga9.aarch64.rpm
 2. if "socat" application not already installed, then install it using below command:
 	- rpm -ivh --nodeps socat-2.0.0-0.b9.11.mga9.aarch64.rpm
-3. Prepare the DuT setup for DPDK application. Refer DPDK README for that.
+3. Prepare the DuT setup for DPDK application. Refer section 'For i.MX Platform' of DPDK README.
 4. update fpr.conf and up files as per the use case.
 5. run dpdk-fpr application. example:
 	./dpdk-fpr --configfile ./fpr.conf
