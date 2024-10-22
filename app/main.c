@@ -117,6 +117,8 @@
 #include <cmdline_parse.h>
 #include <cmdline_parse_ipaddr.h>
 #include <rte_acl.h>
+#include <rte_hash.h>
+#include <rte_jhash.h>
 
 #include <libneighbour.h>
 #include <libnetlink.h>
@@ -128,6 +130,24 @@
 #include "cmdline.h"
 #include "acl.h"
 #include "config.h"
+
+/* Structure to be used in hashing for NAT Masq. */
+struct hash_value {
+	uint32_t ip; /* IP address */
+	uint16_t port; /* Port */
+};
+
+/* prepare list of free ports and pre-allocate memory for value */
+uint16_t hash_return_value; /* used NAT port */
+
+/* Preparing LIST of unused ports */
+struct nat_masq_entry {
+	STAILQ_ENTRY(nat_masq_entry) next;
+	uint16_t key;
+	struct hash_value value;
+};
+
+STAILQ_HEAD(nat_masq_entries, nat_masq_entry) nat_masq_entries;
 
 /**
  * ICMPv6 Header
@@ -158,6 +178,8 @@ struct control_params_t {
 };
 struct control_params_t control_handle4[NB_SOCKETS];
 struct control_params_t control_handle6[NB_SOCKETS];
+
+#define MAX_HASH_ENTRIES (1 << 19)
 
 #define PKTJ_PKT_TYPE(m) (m)->packet_type
 #define PKTJ_IP_MASK (RTE_PTYPE_L3_IPV4 | RTE_PTYPE_L3_IPV6)
@@ -699,8 +721,28 @@ main_loop(__rte_unused void* dummy)
 
 				/* Support for IPv4 only */
         			if (likely(PKTJ_TEST_IPV4_HDR(pkts_burst[j]))) {
-
                 			ipv4_hdr = (struct rte_ipv4_hdr*)(eth_hdr + 1);
+					/* If nat masqurade and only udp */
+					if (kni_port_params_array[portid]->masq &&
+							ipv4_hdr->next_proto_id == IPPROTO_UDP) {
+						struct rte_udp_hdr *udp;
+						struct hash_value *results;
+
+						udp = (struct rte_udp_hdr *)(ipv4_hdr + 1);
+
+						ret = rte_hash_lookup_data(kni_port_params_array[portid]->hash,
+								(const void *)&udp->dst_port, (void **)&results);
+						if (!ret) {
+							RTE_LOG(DEBUG, PKTJ1, "NAT lookup found IP = 0x%x, port = %d\n",
+									(uint32_t)results->ip, results->port);
+							udp->dst_port = results->port;
+							ipv4_hdr->dst_addr = results->ip;
+						} else {
+							RTE_LOG(DEBUG, PKTJ1, "No NAT entry found for UDP port = %d\n",
+									rte_be_to_cpu_16(udp->dst_port));
+						}
+					}
+
 				    	rate = rate_limit_step_ipv4(qconf, pkts_burst[j], lcore_id);
 					if (unlikely(rate == RATE_LIMITED)) {
 						rte_pktmbuf_free(pkts_burst[j]);
@@ -778,17 +820,63 @@ main_loop(__rte_unused void* dummy)
 						&eth_hdr->src_addr);
 					rte_ether_addr_copy(&entries->nexthop_hwaddr,
 							&eth_hdr->dst_addr);
+					/* If NAT masquerade and only udp */
+					if (kni_port_params_array[entries->port_id]->masq &&
+							ipv4_hdr->next_proto_id == IPPROTO_UDP) {
+						struct rte_udp_hdr *udp;
+						uint16_t *used_port;
+						struct hash_value val;
+
+						val.ip = ipv4_hdr->src_addr;
+
+						udp = (struct rte_udp_hdr *)(ipv4_hdr + 1);
+						val.port = udp->src_port;
+						ret = rte_hash_lookup_data(kni_port_params_array[entries->port_id]->reply_hash,
+								(const void *)&val, (void **)&used_port);
+						if (ret) {
+							struct nat_masq_entry *entry;
+
+							assert(!STAILQ_EMPTY(&nat_masq_entries));
+							entry = STAILQ_FIRST(&nat_masq_entries);
+							assert(entry != NULL);
+							STAILQ_REMOVE_HEAD(&nat_masq_entries, next);
+							entry->value.ip = val.ip;
+							entry->value.port = val.port;
+							RTE_LOG(DEBUG, PKTJ1, "No NAT entry found, so adding\n");
+							ret = rte_hash_add_key_data(kni_port_params_array[entries->port_id]->hash,
+									(const void *)&entry->key, &entry->value);
+							if (ret) {
+								RTE_LOG(ERR, PKTJ1, "Failed to add NAT for IP 0x%x port %d\n", val.ip, val.port);
+							}
+							hash_return_value = entry->key;
+							ret = rte_hash_add_key_data(kni_port_params_array[entries->port_id]->reply_hash,
+									(const void *)&entry->value, &hash_return_value);
+							if (ret) {
+								 RTE_LOG(ERR, PKTJ1, "Failed to add reply NAT\n");
+							}
+							udp->src_port = entry->key;
+						} else {
+							RTE_LOG(DEBUG, PKTJ1, "Already added NAT port = %d\n", (uint32_t)*used_port);
+							udp->src_port = *used_port;
+							/* Hash Entry to be updated for timestamp */
+						}
+						ipv4_hdr->src_addr = kni_port_params_array[entries->port_id]->addr.s_addr;
+					}
 					if (likely(PKTJ_TEST_IPV4_HDR(pkts_burst[j])) && ipv4_hdr != NULL) {
 						--(ipv4_hdr->time_to_live);
                                         	++(ipv4_hdr->hdr_checksum);
 					} else if (PKTJ_TEST_IPV6_HDR(pkts_burst[j]) && ipv6_hdr != NULL) {
 						ipv6_hdr->hop_limits--;
 					}
+					/* Offloading checksum */
+					pkts_burst[j]->ol_flags |= (RTE_MBUF_F_TX_IPV4 | RTE_MBUF_F_TX_IP_CKSUM | RTE_MBUF_F_TX_UDP_CKSUM);
+					pkts_burst[j]->l2_len = sizeof(*eth_hdr);
+					pkts_burst[j]->l3_len = sizeof(*ipv4_hdr);
 				  	ret = rte_eth_tx_burst(entries->port_id, qconf->tx_queue_id[entries->port_id],
 							&pkts_burst[j], 1);
 				  	if (ret == 0) {
 						stats[lcore_id].nb_dropped++;
-						RTE_LOG(ERR, PKTJ1, "Failed to TX packet, free it\n");
+						RTE_LOG(DEBUG, PKTJ1, "Failed to TX packet, free it\n");
 				  		rte_pktmbuf_free(pkts_burst[j]);
 				  	}
 					stats[lcore_id].nb_tx++;
@@ -1190,6 +1278,10 @@ init_port(uint8_t portid)
 	RTE_LOG(INFO, PKTJ1, "Creating queues: nb_rxq=%d nb_txq=%u...\n",
 		nb_rx_queue, nb_tx_queue);
 
+	/* Configuring interfaces with checksum offload enabled */
+	port_conf.rxmode.offloads |= RTE_ETH_RX_OFFLOAD_IPV4_CKSUM | RTE_ETH_RX_OFFLOAD_UDP_CKSUM;
+	port_conf.txmode.offloads |= (RTE_ETH_TX_OFFLOAD_IPV4_CKSUM | RTE_ETH_TX_OFFLOAD_UDP_CKSUM |
+			RTE_ETH_TX_OFFLOAD_TCP_CKSUM);
 	ret =
 	    rte_eth_dev_configure(portid, nb_rx_queue, nb_tx_queue, &port_conf);
 	if (ret < 0)
@@ -1575,6 +1667,48 @@ main(int argc, char** argv)
 		if (multicast_on) {
 			rte_eth_allmulticast_enable(portid);
 			rte_eth_allmulticast_enable(kni_port_params_array[portid]->port_id);
+		}
+
+		/* if NAT enabled on this port */
+		if (kni_port_params_array[portid]->masq) {
+			/* Init NAT free ports list */
+			STAILQ_INIT(&nat_masq_entries);
+
+			/* Populate all list */
+			for (int k = 0; k < kni_port_params_array[portid]->count; k++) {
+				struct nat_masq_entry *entry;
+
+				entry = rte_zmalloc(NULL, sizeof(struct nat_masq_entry), 0);
+				entry->key = rte_cpu_to_be_16(kni_port_params_array[portid]->base_port + k);
+				STAILQ_INSERT_TAIL(&nat_masq_entries, entry, next);
+			}
+
+			char name[RTE_HASH_NAMESIZE];
+			char reply_name[RTE_HASH_NAMESIZE];
+			static struct rte_hash_parameters ut_params = {
+				.entries = MAX_HASH_ENTRIES,
+				.hash_func = rte_jhash,
+				.hash_func_init_val = 0,
+			};
+			snprintf(name, sizeof(name), "port%u_nat", portid);
+			snprintf(reply_name, sizeof(reply_name), "port%u_reply_nat", portid);
+			/* creating hash table without locks */
+			ut_params.extra_flag = 0;
+			ut_params.name = name;
+			ut_params.socket_id = rte_socket_id();
+			ut_params.key_len = sizeof(uint16_t);
+			kni_port_params_array[portid]->hash = rte_hash_create(&ut_params);
+			if (kni_port_params_array[portid]->hash == NULL) {
+				printf("Error creating hash table\n");
+				return -1;
+			}
+			ut_params.name = reply_name;
+			ut_params.key_len = sizeof(struct hash_value);
+			kni_port_params_array[portid]->reply_hash = rte_hash_create(&ut_params);
+			if (kni_port_params_array[portid]->reply_hash == NULL) {
+				printf("Error creating reply hash table\n");
+				return -1;
+			}
 		}
 	}
 

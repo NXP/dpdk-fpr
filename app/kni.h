@@ -54,6 +54,15 @@ struct kni_port_params {
 	uint32_t nb_lcore_k; /* Number of lcores for KNI multi kernel threads */
 	uint32_t nb_kni;     /* Number of KNI devices to be created */
 //	unsigned lcore_k[KNI_MAX_KTHREAD];    /* lcore ID list for kthreads */
+	/* NAT related params */
+	struct in_addr addr;
+	uint8_t mask;
+	uint8_t masq;
+	uint16_t base_port;
+	uint16_t count;
+	struct rte_hash *hash;
+	struct rte_hash *reply_hash;
+
 } __rte_cache_aligned;
 
 extern struct kni_port_params* kni_port_params_array[RTE_MAX_ETHPORTS];
