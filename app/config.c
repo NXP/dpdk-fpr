@@ -87,6 +87,8 @@
 #include "acl.h"
 #include "kni.h"
 
+#define FPR_NAT_BASE_PORT 50000
+#define FPR_NAT_COUNT 1000
 static struct lcore_params lcore_params_array[MAX_LCORE_PARAMS];
 
 struct lcore_params* lcore_params;
@@ -147,6 +149,66 @@ print_kni_config(void)
 		RTE_LOG(DEBUG, PKTJ1, "Tx lcore ID: %u\n", p[i]->lcore_tx);
 	}
 }
+
+static int
+nat_masq_parse_config_from_file(uint8_t port_id, char *q_arg)
+{
+	char *end;
+	enum fieldnames {
+		FLD_ENABLE = 0,
+		_NUM_FLD = KNI_MAX_KTHREAD + 3,
+	};
+	int i, nb_token;
+	char *str_fld[_NUM_FLD];
+	unsigned long int_fld[_NUM_FLD];
+
+	nb_token = rte_strsplit(q_arg, strlen(q_arg), str_fld, _NUM_FLD, ',');
+
+	if (nb_token <= FLD_ENABLE) {
+		RTE_LOG(ERR, PKTJ1, "Invalid config parameters\n");
+		return -1;
+	}
+	for (i = 0; i < nb_token; i++) {
+		errno = 0;
+		int_fld[i] = strtoul(str_fld[i], &end, 0);
+		if (errno != 0 || end == str_fld[i]) {
+			RTE_LOG(ERR, PKTJ1, "Invalid config parameters\n");
+			return -1;
+		}
+	}
+
+	kni_port_params_array[port_id]->masq = (uint8_t)int_fld[0];
+
+	return 0;
+}
+
+static int
+nat_port_parse_config_from_file(uint8_t port_id, char *q_arg)
+{
+	char *end;
+	enum fieldnames { FLD_PORT = 0, FLD_COUNT, _NUM_FLD };
+	unsigned long int_fld[_NUM_FLD];
+	char *str_fld[_NUM_FLD];
+	int i;
+
+	if (rte_strsplit(q_arg, strlen(q_arg), str_fld,
+			 _NUM_FLD, ',') != _NUM_FLD) {
+		return -1;
+	}
+
+	for (i = 0; i < _NUM_FLD; i++) {
+		errno = 0;
+		int_fld[i] = strtoul(str_fld[i], &end, 0);
+		if (errno != 0 || end == str_fld[i])
+			return -1;
+	}
+
+	kni_port_params_array[port_id]->base_port = (uint16_t)int_fld[0];
+	kni_port_params_array[port_id]->count = (uint16_t)int_fld[1];
+
+	return 0;
+}
+
 
 static int
 kni_parse_config_from_file(uint8_t port_id, char* q_arg)
@@ -549,6 +611,38 @@ install_cfgfile(const char* file_name, char* prgname)
 
 		if (ret)
 			rte_exit(EXIT_FAILURE, "Invalid config, refer help\n");
+
+		entry = rte_cfgfile_get_entry(file, section_name, "nat_ip_masquerade");
+		if (entry) {
+			ptr = strdup(entry);
+			if (!ptr)
+				rte_exit(EXIT_FAILURE,
+					 "Config file parse error: Could "
+					 "not allocate memory for "
+					 "strdup\n");
+			ret = nat_masq_parse_config_from_file(i, ptr);
+			if (ret)
+				rte_exit(EXIT_FAILURE, "invalid config, refer help\n");
+			free(ptr);
+
+			entry = rte_cfgfile_get_entry(file, section_name, "nat_port");
+			if (entry) {
+				ptr = strdup(entry);
+				if (!ptr)
+					rte_exit(EXIT_FAILURE,
+						 "Config file parse error: Could "
+						 "not allocate memory for "
+						 "strdup\n");
+				ret = nat_port_parse_config_from_file(i, ptr);
+				if (ret)
+					rte_exit(EXIT_FAILURE, "invalid config, refer help\n");
+				free(ptr);
+			} else {
+				/* setting default values */
+				kni_port_params_array[i]->base_port = (uint16_t)FPR_NAT_BASE_PORT;
+				kni_port_params_array[i]->count = (uint16_t)FPR_NAT_COUNT;
+			}
+		}
 	}
 
 	/* Check for total interfaces, there must be equal number of vitio/tap interfaces */

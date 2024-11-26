@@ -86,6 +86,7 @@
 #include "control.h"
 #include "routing.h"
 #include "config.h"
+#include "kni.h"
 
 #define CTRL_CBK_MAX_SIZE 256
 #ifndef __DECONST
@@ -781,10 +782,14 @@ addr4(__rte_unused addr_action_t action,
 	int32_t socket_id = handle->socket_id;
 
 	if_indextoname(port_id, ibuf);
-	sscanf(ibuf, "dpdk%10d", &port_id);
+	/* replace with dtap */
+	sscanf(ibuf, "dtap%d", &port_id);
 	RTE_LOG(DEBUG, PKTJ_CTRL1, "addr4 port=%s %s/%d with port_id %d\n",
 		ibuf, inet_ntop(AF_INET, addr, buf, 255), prefixlen, port_id);
 
+	rte_memcpy(&kni_port_params_array[port_id]->addr, addr,
+			sizeof(struct in_addr));
+	kni_port_params_array[port_id]->mask = prefixlen;
 	control_add_ipv4_local_entry(addr, addr, prefixlen, port_id, socket_id);
 
 	return 0;
@@ -804,7 +809,7 @@ addr6(__rte_unused addr_action_t action,
 	int32_t socket_id = handle->socket_id;
 
 	if_indextoname(port_id, ibuf);
-	sscanf(ibuf, "dpdk%10d", &port_id);
+	sscanf(ibuf, "dtap%10d", &port_id);
 	RTE_LOG(DEBUG, PKTJ_CTRL1, "addr6 port=%s %s/%d with port_id %d\n",
 		ibuf, inet_ntop(AF_INET6, addr, buf, 255), prefixlen, port_id);
 
