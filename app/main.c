@@ -58,7 +58,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 /* SPDX-License-Identifier: BSD-3-Clause
- * Copyright 2024 NXP
+ * Copyright 2024-2025 NXP
  */
 
 #ifndef _GNU_SOURCE
@@ -868,10 +868,12 @@ main_loop(__rte_unused void* dummy)
 					} else if (PKTJ_TEST_IPV6_HDR(pkts_burst[j]) && ipv6_hdr != NULL) {
 						ipv6_hdr->hop_limits--;
 					}
-					/* Offloading checksum */
-					pkts_burst[j]->ol_flags |= (RTE_MBUF_F_TX_IPV4 | RTE_MBUF_F_TX_IP_CKSUM | RTE_MBUF_F_TX_UDP_CKSUM);
-					pkts_burst[j]->l2_len = sizeof(*eth_hdr);
-					pkts_burst[j]->l3_len = sizeof(*ipv4_hdr);
+					if (kni_port_params_array[entries->port_id]->masq) {
+						/* Offloading checksum */
+						pkts_burst[j]->ol_flags |= (RTE_MBUF_F_TX_IPV4 | RTE_MBUF_F_TX_IP_CKSUM | RTE_MBUF_F_TX_UDP_CKSUM);
+						pkts_burst[j]->l2_len = sizeof(*eth_hdr);
+						pkts_burst[j]->l3_len = sizeof(*ipv4_hdr);
+					}
 				  	ret = rte_eth_tx_burst(entries->port_id, qconf->tx_queue_id[entries->port_id],
 							&pkts_burst[j], 1);
 				  	if (ret == 0) {
@@ -1278,10 +1280,12 @@ init_port(uint8_t portid)
 	RTE_LOG(INFO, PKTJ1, "Creating queues: nb_rxq=%d nb_txq=%u...\n",
 		nb_rx_queue, nb_tx_queue);
 
-	/* Configuring interfaces with checksum offload enabled */
-	port_conf.rxmode.offloads |= RTE_ETH_RX_OFFLOAD_IPV4_CKSUM | RTE_ETH_RX_OFFLOAD_UDP_CKSUM;
-	port_conf.txmode.offloads |= (RTE_ETH_TX_OFFLOAD_IPV4_CKSUM | RTE_ETH_TX_OFFLOAD_UDP_CKSUM |
+	if (kni_port_params_array[portid]->masq) {
+		/* Configuring interfaces with checksum offload enabled */
+		port_conf.rxmode.offloads |= RTE_ETH_RX_OFFLOAD_IPV4_CKSUM | RTE_ETH_RX_OFFLOAD_UDP_CKSUM;
+		port_conf.txmode.offloads |= (RTE_ETH_TX_OFFLOAD_IPV4_CKSUM | RTE_ETH_TX_OFFLOAD_UDP_CKSUM |
 			RTE_ETH_TX_OFFLOAD_TCP_CKSUM);
+	}
 	ret =
 	    rte_eth_dev_configure(portid, nb_rx_queue, nb_tx_queue, &port_conf);
 	if (ret < 0)
