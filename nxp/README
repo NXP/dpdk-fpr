@@ -175,7 +175,16 @@ Config file options:
 				/* configuration of equivalent kernel interface. user will
 				 * have to create the interface via eal arguments.
 				 */
-
+	- nat_ip_masquerade = 1
+				/* Applicable only for i.MX95.
+				 * This will enable NAT masquerade for IP-UDP packets.
+				 */
+	- nat_port       = <UDP port range>
+				/* Applicable only for i.MX95 and if nat_ip_masquerade is true.
+				 * nat_port is range of free UDP ports that can be used for
+				 * NATing, format: base_port,count e.g 50000,1000 means 50000-60000 UDP ports can be used for NATing.
+				 * default is 50000 to 60000.
+				 */
 
 Note: To comment a line in config file, put ";" before the line
 
