@@ -1,5 +1,5 @@
 /* SPDX-License-Identifier: BSD-3-Clause
- * Copyright 2024 NXP
+ * Copyright 2024-2025 NXP
  */
 /*
  * parts from:
@@ -120,7 +120,7 @@ netl_handler(struct netl_handle *h,
 		{
 			struct ifinfomsg *ifi = NLMSG_DATA(hdr);
 			struct rtattr *rta_tb[IFLA_MAX + 1];
-			struct rte_ether_addr lladdr;
+			struct rte_ether_addr lladdr = {0};
 			int ifid = ifi->ifi_index;
 			int mtu = -1;
 			const char *ifname = "";
