@@ -1,0 +1,89 @@
+{
+  "SPDXID": "SPDXRef-DOCUMENT",
+  "spdxVersion": "SPDX-2.3",
+  "creationInfo": {
+    "created": "2025-08-24T08:03:48Z",
+    "creators": [
+      "Organization: NXP"
+    ],
+    "licenseListVersion": "3.20"
+  },
+  "name": "dpdk-fpr-LF_6.12.34_2.1.0",
+  "dataLicense": "CC0-1.0",
+  "documentNamespace": "https://nxp.com/spdx/ff3a32d4-622a-423a-b100-d53173bdb768",
+  "packages": [
+    {
+      "SPDXID": "SPDXRef-package-ff3a32d4-622a-423a-b100-d53173bdb768",
+      "name": "dpdk-fpr",
+      "versionInfo": "LF_6.12.34_2.1.0",
+      "licenseConcluded": "(BSD-3-Clause)",
+      "licenseDeclared": "(BSD-3-Clause)",
+      "downloadLocation": "https://github.com/nxp/dpdk-fpr -b lf-6.12.34-2.1.0",
+      "originator": "Organization: NXP",
+      "supplier": "NOASSERTION",
+      "externalRefs": [],
+      "filesAnalyzed": false
+    },
+    {
+      "SPDXID": "SPDXRef-package-224aea76-9662-4a07-bd96-361315743c4d",
+      "name": "DPDK",
+      "versionInfo": "22.11",
+      "licenseConcluded": "BSD-3-Clause",
+      "licenseDeclared": "BSD-3-Clause",
+      "homepage": "https://www.dpdk.org",
+      "downloadLocation": "NOASSERTION",
+      "originator": "Organization: dpdk",
+      "supplier": "NOASSERTION",
+      "externalRefs": [
+        {
+          "referenceCategory": "SECURITY",
+          "referenceLocator": "cpe:2.3:a:dpdk:data_plane_development_kit:22.11:*:*:*:*:*:*:*",
+          "referenceType": "cpe23Type"
+        },
+        {
+          "referenceCategory": "SECURITY",
+          "referenceLocator": "cpe:2.3:a:redhat_package:dpdk-debuginfo:22.11:4.el9_2:*:*:*:*:*:*",
+          "referenceType": "cpe23Type"
+        },
+        {
+          "referenceCategory": "SECURITY",
+          "referenceLocator": "cpe:2.3:a:redhat_package:dpdk-doc:22.11:4.el9_2:*:*:*:*:*:*",
+          "referenceType": "cpe23Type"
+        },
+        {
+          "referenceCategory": "SECURITY",
+          "referenceLocator": "cpe:2.3:a:dpdk:dpdk:22.11:*:*:*:*:*:*:*",
+          "referenceType": "cpe23Type"
+        },
+        {
+          "referenceCategory": "SECURITY",
+          "referenceLocator": "cpe:2.3:a:redhat_package:dpdk-devel:22.11:4.el9_2:*:*:*:*:*:*",
+          "referenceType": "cpe23Type"
+        },
+        {
+          "referenceCategory": "PACKAGE-MANAGER",
+          "referenceLocator": "pkg:github/DPDK/dpdk@v22.11",
+          "referenceType": "purl"
+        },
+        {
+          "referenceCategory": "OTHER",
+          "referenceLocator": "820c5313-2491-4543-ab1b-6dceb6adaad4",
+          "referenceType": "BlackDuck-ComponentOrigin"
+        }
+      ],
+      "filesAnalyzed": false
+    }
+  ],
+  "relationships": [
+    {
+      "spdxElementId": "SPDXRef-DOCUMENT",
+      "relationshipType": "DESCRIBES",
+      "relatedSpdxElement": "SPDXRef-package-ff3a32d4-622a-423a-b100-d53173bdb768"
+    },
+    {
+      "spdxElementId": "SPDXRef-package-ff3a32d4-622a-423a-b100-d53173bdb768",
+      "relationshipType": "DYNAMIC_LINK",
+      "relatedSpdxElement": "SPDXRef-package-224aea76-9662-4a07-bd96-361315743c4d"
+    }
+  ]
+}
